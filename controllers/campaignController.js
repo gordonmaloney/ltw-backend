@@ -3,6 +3,8 @@ const bcrypt = require("bcrypt");
 const asyncHandler = require("express-async-handler");
 const Campaign = require("../models/campaignSchema");
 const { db } = require("../models/campaignSchema");
+const dotenv = require("dotenv");
+dotenv.config();
 
 //get all campaigns
 //get: /all
@@ -69,18 +71,28 @@ const createCampaign = async (req, res) => {
 //post: /edit/:uuid
 const editCampaign = async (req, res) => {
   const { uuid } = req.params;
-  const { password, ...campaignData } = req.body;
+  const { password, adminPassword, ...campaignData } = req.body;
   //note for frontend: we take the OLD uuid from req.params, but the NEW from req.body
 
   let campaign = await Campaign.findOne({ uuid: uuid });
+
+  if (password && !adminPassword) {
+    const passwordMatch = await bcrypt.compare(password, campaign.password);
+    if (!passwordMatch) {
+      return res.status(401).json("incorrect password");
+    }
+  } else if (adminPassword && adminPassword !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json("incorrect admin password");
+  }
+
+  if (!password && !adminPassword) {
+    return res.status(401).json("password required")
+  }
 
   if (!campaign) {
     res.status(404).json("Campaign not found");
   } else {
     try {
-      const passwordMatch = await bcrypt.compare(password, campaign.password);
-      if (!passwordMatch) return res.status(401).json("Incorrect password");
-
       campaign.uuid = req.body.uuid;
       campaign.title = req.body.title;
       campaign.blurb = req.body.blurb;
@@ -106,10 +118,21 @@ const editCampaign = async (req, res) => {
 ////post: /delete/:uuid
 const deleteCampaign = async (req, res) => {
   const { uuid } = req.params;
-  const { password } = req.body;
+  const { password, adminPassword } = req.body;
 
-  if (!password) {
-    return res.status(400).json("password required");
+  let campaign = await Campaign.findOne({ uuid: uuid });
+
+  if (password && !adminPassword) {
+    const passwordMatch = await bcrypt.compare(password, campaign.password);
+    if (!passwordMatch) {
+      return res.status(401).json("incorrect password");
+    }
+  } else if (adminPassword && adminPassword !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json("incorrect admin password");
+  }
+
+  if (!password && !adminPassword) {
+    return res.status(401).json("password required")
   }
 
   try {
@@ -119,10 +142,6 @@ const deleteCampaign = async (req, res) => {
       return res.status(404).json("campaign not found");
     }
 
-    const passwordMatch = await bcrypt.compare(password, campaign.password);
-    if (!passwordMatch) {
-      return res.status(401).json("incorrect password");
-    }
 
     await Campaign.findOneAndDelete({ uuid });
     res.status(200).json(`campaign ${uuid} successfully deleted`);
