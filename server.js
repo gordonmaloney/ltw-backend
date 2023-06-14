@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(
   cors({
-    origin: ['http://localhost:3000/', 'https://louderthanwords.netlify.app/'] // Replace with your allowed domain
+    origin: 'https://louderthanwords.netlify.app/'
   })
 );
 
