@@ -3,10 +3,10 @@ const express = require("express");
 const colors = require("colors");
 const dotenv = require("dotenv").config();
 const connectDB = require("./config/db");
-const {rateLimit} = require("express-rate-limit")
+const { rateLimit } = require("express-rate-limit");
 const port = process.env.PORT || 8002;
 const cors = require("cors");
-const { MongoClient } = require('mongodb');
+const { MongoClient } = require("mongodb");
 
 connectDB();
 
@@ -20,10 +20,9 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(
   cors({
-    origin: 'https://louderthanwords.netlify.app'
+    origin: "*",
   })
 );
-
 
 const apiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 15 minutes
@@ -38,11 +37,13 @@ app.get("/", (req, res) => {
   res.send(`API running on port ${port} - nice one!`);
 });
 
-
-client.connect(err => {
-  if(err){ console.error(err); return false;}
+client.connect((err) => {
+  if (err) {
+    console.error(err);
+    return false;
+  }
   // connection to mongo is successful, listen for requests
   app.listen(port, () => {
-      console.log(`API running on port ${port} - nice one!`);
-  })
+    console.log(`API running on port ${port} - nice one!`);
+  });
 });

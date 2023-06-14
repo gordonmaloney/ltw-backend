@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 const asyncHandler = require("express-async-handler");
 const Campaign = require("../models/campaignSchema");
 const { db } = require("../models/campaignSchema");
@@ -20,7 +20,7 @@ const getCampaigns = async (req, res) => {
 const getCampaign = async (req, res) => {
   console.log(req.params);
   try {
-    const { uuid    } = req.params;
+    const { uuid } = req.params;
 
     const campaign = await Campaign.findOne({ uuid: uuid });
 
@@ -35,7 +35,6 @@ const getCampaign = async (req, res) => {
 const createCampaign = async (req, res) => {
   const { uuid, password, ...campaignData } = req.body;
   const campaign = await Campaign.findOne({ uuid: uuid });
-
 
   if (campaign) {
     res.status(500).json("Campaign name already in use");
@@ -57,9 +56,9 @@ const createCampaign = async (req, res) => {
         uuid: uuid,
         password: hashedPassword,
       });
-  
+
       await createdCampaign.save();
-  
+
       return res.status(200).json(createdCampaign);
     } catch (error) {
       res.status(500).json("uh oh!" + error);
@@ -73,18 +72,16 @@ const editCampaign = async (req, res) => {
   const { password, ...campaignData } = req.body;
   //note for frontend: we take the OLD uuid from req.params, but the NEW from req.body
 
-
   let campaign = await Campaign.findOne({ uuid: uuid });
 
   if (!campaign) {
     res.status(404).json("Campaign not found");
   } else {
     try {
-
       const passwordMatch = await bcrypt.compare(password, campaign.password);
       if (!passwordMatch) return res.status(401).json("Incorrect password");
 
-      campaign.uuid = req.body.uuid
+      campaign.uuid = req.body.uuid;
       campaign.title = req.body.title;
       campaign.blurb = req.body.blurb;
       campaign.host = req.body.host;
@@ -109,13 +106,28 @@ const editCampaign = async (req, res) => {
 ////post: /delete/:uuid
 const deleteCampaign = async (req, res) => {
   const { uuid } = req.params;
-  const campaign = await Campaign.findOne({ uuid: uuid });
+  const { password } = req.body;
 
-  if (!campaign) {
-    res.status(404).json("Campaign not found");
-  } else {
-    const campaign = await Campaign.findOneAndDelete({ uuid: uuid });
-    res.status(200).json(`Campaign ${uuid} successfully deleted.`)
+  if (!password) {
+    return res.status(400).json("password required");
+  }
+
+  try {
+    const campaign = await Campaign.findOne({ uuid });
+
+    if (!campaign) {
+      return res.status(404).json("campaign not found");
+    }
+
+    const passwordMatch = await bcrypt.compare(password, campaign.password);
+    if (!passwordMatch) {
+      return res.status(401).json("incorrect password");
+    }
+
+    await Campaign.findOneAndDelete({ uuid });
+    res.status(200).json(`campaign ${uuid} successfully deleted`);
+  } catch (error) {
+    res.status(500).json("uh oh!");
   }
 };
 
