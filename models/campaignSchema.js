@@ -17,6 +17,7 @@ const campaignSchema = mongoose.Schema(
     prompts: Array,
     template: String,
     bulkTarget: String,
+    password: String
   },
   {
     timestamps: true,

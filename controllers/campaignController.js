@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
+const bcrypt = require('bcrypt');
 const asyncHandler = require("express-async-handler");
 const Campaign = require("../models/campaignSchema");
 const { db } = require("../models/campaignSchema");
@@ -30,62 +30,48 @@ const getCampaign = async (req, res) => {
 
 //create campaign
 const createCampaign = async (req, res) => {
-  const { uuid } = req.body;
+  const { uuid, password, ...campaignData } = req.body;
   const campaign = await Campaign.findOne({ uuid: uuid });
 
-  console.log(req.body)
 
   if (campaign) {
     res.status(500).json("Campaign name already in use");
   } else {
     try {
-      const {
-        title,
-        blurb,
-        host,
-        hostLink,
-        uuid,
-        subject,
-        target,
-        bcc,
-        channel,
-        prompts,
-        template,
-        bulkTarget,
-      } = req.body;
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-      const campaign = await Campaign.create({
-        title,
-        blurb,
-        host,
-        hostLink,
-        uuid,
-        subject,
-        target,
-        bcc,
-        channel,
-        prompts,
-        template,
-        bulkTarget,
+      const createdCampaign = new Campaign({
+        ...campaignData,
+        uuid: uuid,
+        password: hashedPassword,
       });
-
-      console.log(req.body)
-      console.log(campaign)
-      res.status(200).json(campaign);
-    } catch {
-      res.status(500).json("uh oh!");
+  
+      await createdCampaign.save();
+  
+      return res.status(200).json(createdCampaign);
+    } catch (error) {
+      res.status(500).json("uh oh!" + error);
     }
   }
 };
 
 const editCampaign = async (req, res) => {
-  const { uuid } = req.body;
+  const { uuid } = req.params;
+  const { password, ...campaignData } = req.body;
+  //note for frontend: we take the OLD uuid from req.params, but the NEW from req.body
+
+
   let campaign = await Campaign.findOne({ uuid: uuid });
 
   if (!campaign) {
-    res.status(500).json("Campaign not found");
+    res.status(404).json("Campaign not found");
   } else {
     try {
+
+      const passwordMatch = await bcrypt.compare(password, campaign.password);
+      if (!passwordMatch) return res.status(401).json("Incorrect password");
+
+      campaign.uuid = req.body.uuid
       campaign.title = req.body.title;
       campaign.blurb = req.body.blurb;
       campaign.host = req.body.host;
@@ -112,7 +98,7 @@ const deleteCampaign = async (req, res) => {
   const campaign = await Campaign.findOne({ uuid: uuid });
 
   if (!campaign) {
-    res.status(500).json("Campaign not found");
+    res.status(404).json("Campaign not found");
   } else {
     const campaign = await Campaign.findOneAndDelete({ uuid: uuid });
     res.status(200).json(`Campaign ${uuid} successfully deleted.`)
