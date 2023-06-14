@@ -3,6 +3,7 @@ const express = require("express");
 const colors = require("colors");
 const dotenv = require("dotenv").config();
 const connectDB = require("./config/db");
+const {rateLimit} = require("express-rate-limit")
 const port = process.env.PORT || 8002;
 const cors = require("cors");
 const { MongoClient } = require('mongodb');
