@@ -38,7 +38,16 @@ const createCampaign = async (req, res) => {
     res.status(500).json("Campaign name already in use");
   } else {
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      let hashedPassword;
+
+      //hash pw if there is one
+      //otherwise just make a random one and lock that sucka up like ancient treasure
+      if (password) {
+        hashedPassword = await bcrypt.hash(password, 10);
+      } else {
+        const randomPassword = randomstring.generate(10);
+        hashedPassword = await bcrypt.hash(randomPassword, 10);
+      }
 
       const createdCampaign = new Campaign({
         ...campaignData,
