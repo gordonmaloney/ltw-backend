@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(
   cors({
-    origin: 'https://louderthanwords.netlify.app/'
+    origin: 'https://louderthanwords.netlify.app'
   })
 );
 
