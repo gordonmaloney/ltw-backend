@@ -5,6 +5,7 @@ const Campaign = require("../models/campaignSchema");
 const { db } = require("../models/campaignSchema");
 
 //get all campaigns
+//get: /all
 const getCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find();
@@ -15,6 +16,7 @@ const getCampaigns = async (req, res) => {
 };
 
 //get single campaign
+//get: /:uuid
 const getCampaign = async (req, res) => {
   console.log(req.params);
   try {
@@ -29,6 +31,7 @@ const getCampaign = async (req, res) => {
 };
 
 //create campaign
+//post: /
 const createCampaign = async (req, res) => {
   const { uuid, password, ...campaignData } = req.body;
   const campaign = await Campaign.findOne({ uuid: uuid });
@@ -64,6 +67,7 @@ const createCampaign = async (req, res) => {
   }
 };
 
+//post: /edit/:uuid
 const editCampaign = async (req, res) => {
   const { uuid } = req.params;
   const { password, ...campaignData } = req.body;
@@ -102,6 +106,7 @@ const editCampaign = async (req, res) => {
   }
 };
 
+////post: /delete/:uuid
 const deleteCampaign = async (req, res) => {
   const { uuid } = req.params;
   const campaign = await Campaign.findOne({ uuid: uuid });

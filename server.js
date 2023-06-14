@@ -7,7 +7,6 @@ const {rateLimit} = require("express-rate-limit")
 const port = process.env.PORT || 8002;
 const cors = require("cors");
 const { MongoClient } = require('mongodb');
-var bodyParser = require('body-parser')
 
 connectDB();
 
