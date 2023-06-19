@@ -5,6 +5,7 @@ const Campaign = require("../models/campaignSchema");
 const { db } = require("../models/campaignSchema");
 const dotenv = require("dotenv");
 dotenv.config();
+const { initializeAnalyticsData } = require("./analyticsController");
 
 //get all campaigns
 //get: /all
@@ -20,7 +21,6 @@ const getCampaigns = async (req, res) => {
 //get single campaign
 //get: /:uuid
 const getCampaign = async (req, res) => {
-  console.log(req.params);
   try {
     const { uuid } = req.params;
 
@@ -46,7 +46,7 @@ const createCampaign = async (req, res) => {
 
       //hash pw if there is one
       //otherwise just make a random one and lock that sucka up like ancient treasure
-      if (password) {
+      if (password !== undefined) {
         hashedPassword = await bcrypt.hash(password, 10);
       } else {
         const randomPassword = randomstring.generate(10);
@@ -60,6 +60,7 @@ const createCampaign = async (req, res) => {
       });
 
       await createdCampaign.save();
+      await initializeAnalyticsData(uuid);
 
       return res.status(200).json(createdCampaign);
     } catch (error) {
@@ -68,11 +69,10 @@ const createCampaign = async (req, res) => {
   }
 };
 
-//post: /edit/:uuid
-const editCampaign = async (req, res) => {
-  const { uuid } = req.params;
-  const { password, adminPassword, ...campaignData } = req.body;
-  //note for frontend: we take the OLD uuid from req.params, but the NEW from req.body
+//post: /login/:uuid
+const logIn = async (req, res) => {
+  const { uuid } = req.body;
+  const { password, adminPassword } = req.body;
 
   let campaign = await Campaign.findOne({ uuid: uuid });
 
@@ -86,7 +86,40 @@ const editCampaign = async (req, res) => {
   }
 
   if (!password && !adminPassword) {
-    return res.status(401).json("password required")
+    return res.status(401).json("password required");
+  }
+
+  if (!campaign) {
+    res.status(404).json("Campaign not found");
+  } else {
+    try {
+      res.status(200).json(campaign);
+    } catch {
+      res.status(500).json("uh oh!");
+    }
+  }
+};
+
+//post: /edit/:uuid
+const editCampaign = async (req, res) => {
+  
+  const { uuid } = req.params;
+  const { oldPassword, password, adminPassword, ...campaignData } = req.body;
+  //note for frontend: we take the OLD uuid from req.params, but the NEW from req.body
+
+  let campaign = await Campaign.findOne({ uuid: uuid });
+
+  if (oldPassword && !adminPassword) {
+    const passwordMatch = await bcrypt.compare(oldPassword, campaign.password);
+    if (!passwordMatch) {
+      return res.status(401).json("incorrect password");
+    }
+  } else if (adminPassword && adminPassword !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json("incorrect admin password");
+  }
+
+  if (!oldPassword && !adminPassword) {
+    return res.status(401).json("password required");
   }
 
   if (!campaign) {
@@ -105,6 +138,12 @@ const editCampaign = async (req, res) => {
       campaign.prompts = req.body.prompts;
       campaign.template = req.body.template;
       campaign.bulkTarget = req.body.bulkTarget;
+
+      if (req.body.password) {
+        let hashedPassword;
+        hashedPassword = await bcrypt.hash(password, 10);
+        campaign.password = hashedPassword;
+      }
 
       await campaign.save();
 
@@ -132,7 +171,7 @@ const deleteCampaign = async (req, res) => {
   }
 
   if (!password && !adminPassword) {
-    return res.status(401).json("password required")
+    return res.status(401).json("password required");
   }
 
   try {
@@ -142,7 +181,6 @@ const deleteCampaign = async (req, res) => {
       return res.status(404).json("campaign not found");
     }
 
-
     await Campaign.findOneAndDelete({ uuid });
     res.status(200).json(`campaign ${uuid} successfully deleted`);
   } catch (error) {
@@ -150,11 +188,11 @@ const deleteCampaign = async (req, res) => {
   }
 };
 
-
 module.exports = {
   getCampaigns,
   getCampaign,
   createCampaign,
+  logIn,
   editCampaign,
   deleteCampaign,
 };
