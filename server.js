@@ -25,13 +25,13 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://louderthanwords.netlify.app/",
   })
 );
 
 const apiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 15 minutes
-  max: 5000, // Limit each IP to 100 requests per windowMs
+  max: 100, // Limit each IP to 100 requests per windowMs
 });
 
 app.use(apiLimiter);
